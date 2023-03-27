@@ -122,3 +122,119 @@ class Program
 
         // ! End of test area 
 
+ Console.CursorVisible = false;
+        // Game loop
+        while (true)
+        {
+            double elapsedTime = stopwatch.ElapsedMilliseconds;
+            // * I hope this will auto refresh every frame. 
+            if (frameCounter < 6000) // The framerate resets every 100 seconds. 
+            {
+                frameCounter += 1;
+            }
+            else
+            {
+                frameCounter = 0;
+                stopwatch.Reset();
+                stopwatch.Restart();
+            }
+
+            // * Check window size 
+            windowSize.CheckSize();
+
+            int screenWidth = windowSize.GetWidth();
+            int screenHeight = windowSize.GetHeight();
+
+            List<int> screenRect = windowSize.GetScreenRect();
+
+            // Todo: Handle keyboard events
+            keysPressed.Clear();
+
+            for (int i = 0; i <= 255; i++)
+            {
+                short keyState = GetAsyncKeyState(i);
+                if (keyState == -32767)
+                {
+                    ConsoleKey consoleKey = (ConsoleKey)i;
+                    keysPressed.Add(consoleKey);
+                }
+            }
+
+            // Todo: Allow entitys to update
+
+            // Todo: Draw the scene 
+
+            // ! checking if the screen size has changed. 
+            if (lastWidth != screenWidth || lastHeight != screenHeight)
+            {
+                lastWidth = screenWidth;
+                lastHeight = screenHeight;
+                screenSizeChanged = true;
+            }
+            else
+            {
+                screenSizeChanged = false;
+            }
+
+            if (screenWidth <= 80 || screenHeight <= 30)
+            {   
+                Console.Clear();
+                scene = "small screen";
+                sceneChange = true; 
+            }
+
+            if (scene == "start")
+            {
+                if (sceneChange)
+                {
+                    Console.Clear();
+
+                    start = new LoadScreen();
+
+                    // ! Draws the title 
+                    List<string> title = new List<string>
+                    {
+                    "          Terminal WAR",
+                    "'`'`'`'`'`            '`'`'`'`'`"}; // TODO: It would be cool to add an animation where the word dropped in, one letter at a time. 
+
+                    List<string> startText = new List<string>
+                    {"Press Enter to Start: "};
+
+                    List<string> highScore = new List<string>
+                    {$"High Score: {highscore}"};
+
+                    Background titleObject = new Background(0, 0, title);
+
+                    start.AddBackground(titleObject);
+
+                    Background startObject = new Background(0, 0, startText);
+
+                    start.AddBackground(startObject);
+
+                    Background highScoreObject = new Background(0, 0, highScore);
+
+                    start.AddBackground(highScoreObject);
+
+                    backgrounds = start.GetBackground();
+
+                    start.Update(keysPressed, screenRect, frameCounter);
+
+                    // Set the starting positin of the titleObject. 
+                    int width = backgrounds[0].GetWidth();
+                    backgrounds[0].SetLocation((screenWidth - width) / 2, 3);
+
+                    // Set the starting position of the startObject. 
+                    width = backgrounds[1].GetWidth();
+                    backgrounds[1].SetLocation((screenWidth - width) / 2, 12);
+
+                    // Set the starting positoin of the highScoreObject. 
+                    width = backgrounds[2].GetWidth();
+                    backgrounds[2].SetLocation((screenWidth - width) / 2, 18);
+
+                    // Draws the starting screen. 
+                    start.Redraw(); 
+
+                    sceneChange = false;
+                }
+
+
