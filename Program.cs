@@ -236,5 +236,215 @@ class Program
 
                     sceneChange = false;
                 }
+ // Animate the press Enter to start. 
+                backgrounds = start.GetBackground(); 
+
+                startAnimation.SetFrames(30); 
+                startAnimation.Animate(frameCounter);
+                int change = startAnimation.GetTimes();
+
+                    if (change % 2 == 0)
+                    {
+                        backgrounds[1].Clear();
+                    }
+                    else
+                    {
+                        backgrounds[1].Draw();
+                    }
+
+                if (keysPressed.Contains(ConsoleKey.Enter))
+                {
+                    Console.Clear();
+                    Console.Beep(200, 2500);
+                    Console.Beep(400, 2500);
+                    Console.Beep(600, 2500);
+                    Console.Beep(800, 2500);
+                    scene = "game";
+                    sceneChange = true;
+                }
+            }
+            else if (scene == "small screen") // I actually really like the weird blinking effect I got here. 
+            {
+                Console.Clear();
+                Console.WriteLine(" --- Your screen is too small ---");
+                Console.WriteLine(" --- increase the size to play the game. ---");
+
+                if (screenWidth > 80 && screenHeight > 30)
+                {
+                    scene = "start";
+                    sceneChange = true;
+                    Console.Clear();
+                }
+            }
+            else if (scene == "game")
+            {
+
+                if (sceneChange)
+                {
+
+                    level = 1;
+                    spawnRate = 600; 
+
+                    List<string> gameBackground = new List<string> // ! Later we will have to update this background to change height depending on the current wave
+                    {
+                    " _____________________________________________________________________________________________________________________",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|                                                                                                                     |",
+                    "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+                    };
+                    
+
+                    List<string> startingLevelDisplay = new List<string>
+                    {
+                        $"Level: {level}"
+                    };
+
+                    List<string> startingHealthDisplay = new List<string>
+                    {
+                        $"Error: Cant display health"
+                    };
+
+                    List<string> startingScoreDisplay = new List<string>
+                    {
+                        $"Score: {currentScore}"
+                    };
+
+                    List<string> playerIcon = new List<string>
+                    {
+                        "}"
+                    };
+
+                    // Add background images. 
+                    Background playfeild = new Background(0, 0, gameBackground); // * first you need to draw out the object. 
+                    Background levelBackground = new Background(0, 0, startingLevelDisplay);
+                    Background healthBackground = new Background(0, 0, startingHealthDisplay);
+                    Background scoreBackground = new Background(0, 0, startingScoreDisplay);
+
+                    game.AddBackground(playfeild);
+                    game.AddBackground(levelBackground);
+                    game.AddBackground(healthBackground);
+                    game.AddBackground(scoreBackground);
+
+
+
+                    backgrounds = game.GetBackground();
+                    List<int> playingSpace = backgrounds[0].GetRect();
+                    List<int> levelSpace = backgrounds[1].GetRect();
+                    game.Update(keysPressed, playingSpace, frameCounter);
+                    int width = backgrounds[0].GetWidth(); //* Then you need to place it in the middle of the screen by using (width - screenWidth) / 2
+                    int levelWidth = backgrounds[1].GetWidth();
+
+                    int gameLeft = (screenWidth - width) / 2; // ! I made this so that I can calculate where the Health, Energy, Button options, and wave display will show up... Though maybe Ill put the wave in the true middle. 
+                    int levelLeft = (screenWidth - levelWidth) / 2;
+                    backgrounds[0].SetLocation(gameLeft, 6);
+                    backgrounds[1].SetLocation(levelLeft, 2);
+                    backgrounds[2].SetLocation(gameLeft, 4);
+                    backgrounds[3].SetLocation(levelLeft, screenHeight - 3);
+
+                    game.SetBackground(backgrounds);
+
+                    // Add the player 
+                    Player localPlayer1 = new Player(gameLeft + 3, 10, playerIcon, 55, baseProjectile);
+
+                    game.AddPlayer(localPlayer1);
+
+                    sceneChange = false;
+
+                }
+
+                player = game.GetPlayers();
+                player.SetDimensions();
+                // healthDisplayNumber = player.GetHealth(); 
+
+                // setting various variables. 
+                 
+                healthDisplayString = "";
+
+                if (healthDisplayNumber > 0)
+                {
+                    for (int i = 0; i < healthDisplayNumber; i++)
+                    {
+                        healthDisplayString += "[]";
+                    }
+                }
+                
+
+                List<string> levelDisplay = new List<string>
+                {
+                    $"Level: {level}"
+                };
+
+                List<string> healthDisplay = new List<string>
+                {
+                    $"Health: {healthDisplayNumber}"
+                };
+
+                List<string> scoreDisplay = new List<string>
+                {
+                    $"Score: {currentScore}"
+                };
+
+                backgrounds = game.GetBackground();
+                backgrounds[1].SetImage(levelDisplay);
+                backgrounds[1].SetDimensions();
+                backgrounds[2].SetImage(healthDisplay);
+                backgrounds[2].SetDimensions();
+                backgrounds[3].SetImage(scoreDisplay);
+                backgrounds[3].SetDimensions();
+
+                List<int> playSpace = backgrounds[0].GetRect();
+
+                game.SetBackground(backgrounds);
+
+
+
+                game.Update(keysPressed, playSpace, frameCounter);
+
+                if (screenSizeChanged == true)
+                {
+                    Console.Clear(); 
+                    Player localPlayer2 = game.GetPlayers();
+                    localPlayer2.SetDimensions();
+                    game.SetPlayer(ref localPlayer2);
+                    // Redrawing the background if the screen size has changed. 
+                    backgrounds = game.GetBackground();
+                    playSpace = backgrounds[0].GetRect();
+                    List<int> levelSpace = backgrounds[1].GetRect();
+                    game.Update(keysPressed, playSpace, frameCounter);
+                    int width = backgrounds[0].GetWidth();
+                    int levelWidth = backgrounds[1].GetWidth();
+                    int gameLeft = (screenWidth - width) / 2;
+                    int levelLeft = (screenWidth - levelWidth) / 2;
+                    backgrounds[0].SetLocation(gameLeft, 6);
+                    backgrounds[1].SetLocation(levelLeft, 2);
+                    backgrounds[2].SetLocation(gameLeft, 4);
+                    backgrounds[3].SetLocation(levelLeft, screenHeight - 3);
+                    game.SetBackground(backgrounds);
+                }
+                
+                player = game.GetPlayers();
+                player.SetDimensions();
+
+                backgrounds = game.GetBackground();
+                List<int> playerSpace = backgrounds[0].GetRect();
+                
 
 
