@@ -158,7 +158,8 @@ public class Object
     {
         return _rect;
     }
-public bool DetectCollision(List<int> otherRect)
+
+    public bool DetectCollision(List<int> otherRect)
     {
         // Convert the object's rectangle to a polygon
         List<Vector2> vertices = new List<Vector2>();
@@ -311,7 +312,8 @@ public class Enemy : Object
     // {
     //     return _damage;
     // }
- public void SetProjectile(Projectile projectile) // ! The reson we don't set this in the constructor is because some ships won't have projectiles.
+
+    public void SetProjectile(Projectile projectile) // ! The reson we don't set this in the constructor is because some ships won't have projectiles.
     {
         _projectile = projectile;
     }
@@ -615,3 +617,207 @@ public class LoadScreen
                 newY = _player.GetY();
                 _player.SetLocation(newX, newY);
             }
+
+
+        // Todo: check for collisions between all objects. 
+        // Todo: Only allow the enemies to move if they are within the background. 
+        // Todo: Anything that has collided with a damage dealing entitiy will lose health. 
+        // Todo: Anything that has zero health is destroyed.
+        // Todo: If the player is destroyed, change the scene to game over. 
+
+    }
+
+    public void Redraw()
+    {
+        foreach (var background in _backgrounds) // ! The blinking issue is a problem with the background, not the player.
+        {
+            if (background.NeedsRedraw)
+            {
+                background.Draw();
+                background.NeedsRedraw = false;
+            }
+        }
+
+        foreach (var projectile in _playerProjectiles)
+        {
+            projectile.Draw(); 
+        }
+
+        foreach (var projectile in _enemyProjectiles)
+        {
+            projectile.Draw();
+        }
+        
+        if (_player is Player)
+        {
+            _player.Draw();
+        }
+
+        foreach (var enemy in _enemies)
+        {
+            enemy.Draw();
+        }
+
+    }
+}
+
+
+public class Animation
+{
+    private int _counter = 0;
+    private int _animationFrames;
+    private int _timesAnimated = 0; // ! This is for things like bullets, where youll need to know the amount of times the animation has happened.
+
+    public void SetFrames(int frames)
+    {
+        _animationFrames = frames;
+    }
+
+    public bool Animate(int frameCounter)
+    {
+        if (frameCounter == 0)
+        {
+            _counter = 0;
+            _timesAnimated = 0;
+        }
+        if (frameCounter >= (_counter * _animationFrames))
+        {
+            _counter += 1;
+            _timesAnimated++;
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    public int GetTimes()
+    {
+        return _timesAnimated;
+    }
+}
+
+public class Vector2
+{
+    public float X { get; set; }
+    public float Y { get; set; }
+
+    public Vector2(float x, float y)
+    {
+        X = x;
+        Y = y;
+    }
+
+    public static Vector2 operator +(Vector2 a, Vector2 b)
+    {
+        return new Vector2(a.X + b.X, a.Y + b.Y);
+    }
+
+    public static Vector2 operator -(Vector2 a, Vector2 b)
+    {
+        return new Vector2(a.X - b.X, a.Y - b.Y);
+    }
+
+    public static Vector2 operator *(Vector2 a, float scalar)
+    {
+        return new Vector2(a.X * scalar, a.Y * scalar);
+    }
+
+    public static Vector2 operator /(Vector2 a, float scalar)
+    {
+        return new Vector2(a.X / scalar, a.Y / scalar);
+    }
+
+    public float Magnitude()
+    {
+        return (float)Math.Sqrt(X * X + Y * Y);
+    }
+
+    public Vector2 Normalize()
+    {
+        float magnitude = Magnitude();
+        return new Vector2(X / magnitude, Y / magnitude);
+    }
+
+    public static float Dot(Vector2 a, Vector2 b)
+    {
+        return a.X * b.X + a.Y * b.Y;
+    }
+
+    public static float AngleBetween(Vector2 a, Vector2 b)
+    {
+        float dotProduct = Dot(a, b);
+        float magA = a.Magnitude();
+        float magB = b.Magnitude();
+        return (float)Math.Acos(dotProduct / (magA * magB));
+    }
+}
+
+public class Polygon
+{
+    private readonly List<Vector2> _vertices;
+    private readonly List<Edge> _edges;
+
+    public Polygon(List<Vector2> vertices)
+    {
+        _vertices = vertices;
+        _edges = new List<Edge>();
+        for (int i = 0; i < _vertices.Count; i++)
+        {
+            int j = (i + 1) % _vertices.Count;
+            _edges.Add(new Edge(_vertices[i], _vertices[j]));
+        }
+    }
+
+    public List<Edge> GetEdges()
+    {
+        return _edges;
+    }
+
+    public float GetMinProjection(Vector2 axis)
+    {
+        float min = float.MaxValue;
+        foreach (Vector2 vertex in _vertices)
+        {
+            float projection = Vector2.Dot(vertex, axis);
+            if (projection < min)
+            {
+                min = projection;
+            }
+        }
+        return min;
+    }
+
+    public float GetMaxProjection(Vector2 axis)
+    {
+        float max = float.MinValue;
+        foreach (Vector2 vertex in _vertices)
+        {
+            float projection = Vector2.Dot(vertex, axis);
+            if (projection > max)
+            {
+                max = projection;
+            }
+        }
+        return max;
+    }
+}
+
+public class Edge
+{
+    public Vector2 Start { get; private set; }
+    public Vector2 End { get; private set; }
+
+    public Edge(Vector2 start, Vector2 end)
+    {
+        Start = start;
+        End = end;
+    }
+
+    public Vector2 Normal()
+    {
+        Vector2 edge = End - Start;
+        return new Vector2(-edge.Y, edge.X);
+    }
+}

@@ -122,7 +122,8 @@ class Program
 
         // ! End of test area 
 
- Console.CursorVisible = false;
+
+        Console.CursorVisible = false;
         // Game loop
         while (true)
         {
@@ -236,7 +237,8 @@ class Program
 
                     sceneChange = false;
                 }
- // Animate the press Enter to start. 
+
+                // Animate the press Enter to start. 
                 backgrounds = start.GetBackground(); 
 
                 startAnimation.SetFrames(30); 
@@ -447,4 +449,287 @@ class Program
                 List<int> playerSpace = backgrounds[0].GetRect();
                 
 
+                // Setup projectile stats
+                // Base projectile
 
+                bool shotTime = playerShoot.Animate(frameCounter);
+
+                if (shotTime)
+                {
+                    canShoot = true;
+                }
+
+                // Check for player projectiles. 
+                if (keysPressed.Contains(ConsoleKey.Spacebar) && canShoot)
+                {   
+                    baseProjectile = new Projectile(0, 0, lineProjectile, true);
+                    int x = player.GetX();
+                    int y = player.GetY();
+                    baseProjectile.SetLocation(x + 1, y);
+                    baseProjectile.SetDimensions();
+                    game.AddPlayerProjectile(baseProjectile); 
+                    game.Update(keysPressed, playerSpace, frameCounter);
+                    canShoot = false;
+                }
+                
+
+                //Spawn enemies
+
+                spawnClock.SetFrames(spawnRate);
+                bool spawn = spawnClock.Animate(frameCounter);
+
+                if (spawn)
+                {   
+                    enemies = game.GetEnemies();
+                    backgrounds = game.GetBackground(); 
+                    List<int> rect = backgrounds[0].GetRect(); 
+                    int randomPosition = random.Next(7,27);
+                    int spawnRow = (rect[1] - 2);
+
+                    List<int> spawnCordinates = new List<int>{spawnRow, randomPosition, spawnRow, randomPosition};
+
+                    while (spawnRow <= 20)
+                    {
+                        foreach (Enemy enemy in enemies)
+                        {
+                            bool collision = enemy.DetectCollision(spawnCordinates);
+                            if (collision)
+                            {
+                                spawnRow ++;
+                                spawnCordinates = new List<int>{spawnRow, randomPosition, spawnRow, randomPosition};
+                            }
+                            if (spawnRow == 28)
+                            {
+                                skipSpawn = true;
+                            }
+                        }
+                    }
+
+                    if (!skipSpawn)
+                    {   
+                        Enemy enemy = new Enemy(spawnRow, randomPosition, basicEnemy, 5);
+                        enemy.SetDimensions();
+                        game.AddEnemy(enemy);
+                    }
+                }
+
+                shootClock.SetFrames(bulletRate);
+                bool shoot = shootClock.Animate(frameCounter);
+
+                foreach (Enemy enemy in enemies)
+                {
+                    if (shoot)
+                    {
+                        baseProjectile = new Projectile(0, 0, circleProjectile, false);
+                        baseProjectile.SetDimensions();
+                        int x = enemy.GetX();
+                        int y = enemy.GetY();
+                        baseProjectile.SetLocation(x - 1, y);
+                        game.AddEnemyProjectile(baseProjectile);
+                    }
+                }
+                    
+
+                if (level == 0 || enemiesKilled >= enemyNumber)
+                {
+                    level += 1; 
+                    enemiesKilled = 0;
+                    double fractionSpawn = spawnRate / 1.2;
+                    spawnRate = (int)Math.Ceiling(fractionSpawn);
+                    double fractionEnemies = 10 * (level * 1.2);
+                    enemyNumber = (int)Math.Ceiling(fractionEnemies);
+                    double fractionBullets = 180 / (level * 1.2); 
+                    bulletRate = (int)Math.Ceiling(fractionBullets);
+                }
+
+                // Detect collisions and calculate damage. 
+                enemyProjectiles = game.GetEnemyProjectiles();
+                playerProjectiles = game.GetPlayerProjectiles();
+                foreach (Projectile projectile in enemyProjectiles)
+                {   
+                    List<int> playerRect = player.GetRect();
+                    bool playerCollision = projectile.DetectCollision(playerRect);
+
+                    backgrounds = game.GetBackground(); 
+                    List<int> rect = backgrounds[0].GetRect(); 
+                    int healthRow = (rect[0] + 2);
+                    List<int> healthCordinates = new List<int>{healthRow, healthRow, 1, screenHeight};
+
+                    bool backgroundCollision = projectile.DetectCollision(healthCordinates);
+
+                    if (playerCollision || backgroundCollision)
+                    {
+                        healthDisplayNumber -= 1;
+                        player.TakeDamage();
+                        Console.Beep(100, 250);
+                    }
+
+                    foreach (Projectile playerProjectile in playerProjectiles)
+                    {
+                        List<int> playerProjectileRect = playerProjectile.GetRect();
+                        bool projectileCollision = projectile.DetectCollision(playerProjectileRect);
+                        if (projectileCollision)
+                        {
+                            projectile.Destroy();
+                            playerProjectile.Destroy(); 
+                        }
+                    }
+                }
+                foreach (Projectile projectile in playerProjectiles)
+                {   
+                    if (enemies is List<Enemy>)
+                    {
+                        foreach(Enemy enemy in enemies)
+                        {   
+                            List<int> enemyRect = enemy.GetRect();
+                            bool enemyCollision = projectile.DetectCollision(enemyRect);
+                            if (enemyCollision)
+                            {
+                                enemy.TakeDamage();
+                                bool isDestroyed = enemy.GetDestroyed();
+                                if (isDestroyed)
+                                {
+                                    currentScore += 50;
+                                    enemiesKilled += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                bool isPlayerDestroyed = player.GetDestroyed(); 
+
+                if (isPlayerDestroyed)
+                {
+                    backgrounds.Clear();
+                    game.SetBackground(backgrounds);
+                    enemyProjectiles.Clear();
+                    game.SetEnemyProjectile(enemyProjectiles);
+                    player.Clear();
+                    game.SetPlayer(ref player);
+                    playerProjectiles.Clear();
+                    game.SetPlayerProjectile(playerProjectiles); 
+                    if (highscore < currentScore)
+                    {
+                        highscore = currentScore;
+                    }
+                    currentScore = 0;
+
+                    scene = "gameover";
+                    sceneChange = true; 
+                }
+
+                // As soon as the bullet hits the player, make sure to clear the bullet and do all actions related to that. It might change to false right after passing. 
+
+                // ! Didn't help at all. 
+                // game.SetEnemyProjectile(enemyProjectiles);
+                // game.SetPlayerProjectile(playerProjectiles);
+                // game.SetPlayer(ref player);
+
+                game.Redraw();
+
+
+                // Todo: Display the health, and have it change if the players total health ever drops. 
+
+                // Todo: Display the action options, and have a blinking line appear under a different option if it is selected. 
+
+                // Todo: Make it so that the player can only use an object option if they have enough energy.   
+
+                // Todo: Display the energy. Have it drop when the player uses an option. 
+                // Todo: Make the energy and health increase slowly over time. 
+
+                // Todo: Every three waves, increase the size of the game background until at the max size. 
+                // Todo: Have enemies randomly spawn in emply spaces in the far row. 
+                // Todo: Calculate enemy movements. 
+                // Todo: Have enemies randomly spawn projectiles. 
+                // Todo: Calculate projectile damage. 
+                // Todo: Remove enemies when they die. 
+                // Todo: Make objects lose health when hit. 
+                // Todo: Make the player lose health when projectiles leave the far left side of the game background. 
+
+                if (keysPressed.Contains(ConsoleKey.K)) // K stands for kill the character. 
+                {
+                    Console.Clear();
+                    scene = "gameover";
+                    sceneChange = true;
+                }
+            }
+            else if (scene == "quit")
+            {
+                // TODO: Write code for the quit screen. 
+            }
+            else if (scene == "gameover")
+            {
+                if (sceneChange)
+                {
+                    Console.Clear();
+                    Console.Beep(700, 2500);
+                    Console.Beep(500, 2500);
+                    Console.Beep(300, 2500);
+                    Console.Beep(100, 2500);
+                    List<string> gameOverWords = new List<string>
+                        {
+                            "  ________          _",
+                            " /        \\        / \\         |\\        /|     |||||||||",
+                            "/                 /   \\        | \\      / |     |",
+                            "|       ____     /_____\\       |  \\    /  |     |||||||||",
+                            "\\          /    /       \\      |   \\  /   |     |",
+                            " \\________/    /         \\     |    \\/    |     |||||||||",
+                            "",
+                            "   ooooo",
+                            " o       o                 ______        ____",
+                            "o         o   \\      /    /      \\     |/    ",
+                            "o         o    \\    /    /  ______\\    |",
+                            " o       o      \\  /     |             |",
+                            "   ooooo         \\/       \\______/     |"
+                        };
+
+                    List<string> highScore = new List<string>
+                        {$"High Score: {highscore}"};
+
+                    Background gameoverText = new Background(0, 0, gameOverWords);
+                    Background highScoreObject = new Background(0, 0, highScore);
+                    LoadScreen gameover = new LoadScreen();
+                    gameover.AddBackground(gameoverText);
+                    gameover.AddBackground(highScoreObject);
+
+                    gameover.Update(keysPressed, screenRect, frameCounter);
+
+                    backgrounds = gameover.GetBackground();
+
+                    int width = backgrounds[0].GetWidth();
+                    backgrounds[0].SetLocation((screenWidth - width) / 2, 10);
+                    backgrounds[1].SetLocation((screenWidth - width) / 2, screenHeight - 5);
+
+                    gameover.SetBackground(backgrounds);
+                    gameover.Update(keysPressed, screenRect, frameCounter);
+                    gameover.Redraw();
+
+
+                    sceneChange = false;
+                    
+                }
+                
+                // gameOverLength.SetFrames(frameCounter + 600);
+                // bool backToStart = gameOverLength.Animate(frameCounter);
+
+                // if (backToStart)
+                // {
+                //     scene = "start";
+                //     sceneChange = true;
+                // }
+
+                // Todo: Show the players total score. 
+                // Todo: Display a flashing: "New High score" If they got a new high score. 
+            }
+
+
+            // ! Test 
+
+            // Todo: Draw the entitys 
+
+            int sleepTime = (int)(frameDuration - elapsedTime % frameDuration);
+            System.Threading.Thread.Sleep(sleepTime);
+        }
+    }
+}
