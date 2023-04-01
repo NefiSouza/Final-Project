@@ -1,6 +1,6 @@
 # Final-Project CSE210 
 
-For this final project, I created a game where the user can shoot the enemy and get some points for it. The user also has health where whenever
+For this final project, I created a game where the user can shoot the enemy and get some points for it. The user also has health points where whenever
 the enemy goes through without being shot, the user loses some health points.
  
  I started by creating the size of the screen and the objective. I created the option where the objective controlled by the user would be able to
